@@ -1,0 +1,137 @@
+library(tidyverse)
+
+####Load the data#####
+infile_down<-"Routput/sig_down_deseq2_results.tsv"
+infile_up<-"Routput/sig_up_deseq2_results.tsv"
+infile_counts<-"Routput/deseq_normalized_counts.tsv"
+infile_gene_info<-"Rdata/transcript_info.tsv"
+
+df_down<-read_tsv(infile_down)
+df_up<-read_tsv(infile_up)
+
+df_down <- df_down %>% filter(padj <=0.001)
+df_counts_wide<-read_tsv(infile_counts)
+df_transcript_info<-read_tsv(infile_gene_info)
+
+####Look at the data we have loaded####
+View(df_down)
+View(df_up)
+View(df_counts_wide)
+View(df_transcript_info)
+
+####Add the information in df_gene_info to df_down and df_up####
+df_down<-left_join(df_down,df_transcript_info,by="Transcript_ID")
+df_up<-left_join(df_up,df_transcript_info,by="Transcript_ID")
+####Format count data into "long" format####
+##Our count data is in "wide" format. In R it is usually
+##easier to work with data in "long" format
+df_counts_long<-df_counts_wide %>% pivot_longer(cols=vehicle_rep1:drug_rep2,
+                                                names_to="Sample",
+                                                values_to="Expression")
+##Separate the meta data (condition and replicate) into separate columns
+df_counts_long<-df_counts_long %>% separate(col=Sample,into=c("Condition","Replicate"),
+                                            sep="_")
+
+####Create a function we can use to graph our results####
+
+expression_dotplot<-function(df_exp,title,padj,outfile){
+  plot<-ggplot(df_exp,aes(x=Condition,y=Expression))
+  plot<-plot+geom_dotplot(binaxis = "y",stackdir = "center",aes(fill=Condition))
+  plot<-plot+ggtitle(title)+theme(plot.title = element_text(hjust=0.5))
+  pdf(outfile)
+  print(plot)
+  dev.off()
+}
+
+####Plot the results for downreg####
+for(r in seq(1,nrow(df_down))){
+  transcript_id<-df_down[r,]$Transcript_ID
+  padj<-df_down[r,]$padj
+  desc<-df_down[r,]$Product_Description
+  title<-paste(transcript_id,desc,sep="\n")
+  outfile<-paste(paste0("Routput/DownReg_Plots/",transcript_id),"pdf",sep=".")
+  df_exp<-df_counts_long %>% filter(Transcript_ID==transcript_id)
+  expression_dotplot(df_exp,title=title,padj=padj,outfile=outfile)
+}
+
+####Plot the results for upreg####
+for(r in seq(1,nrow(df_up))){
+  transcript_id<-df_up[r,]$Transcript_ID
+  padj<-df_up[r,]$padj
+  desc<-df_up[r,]$Product_Description
+  title<-paste(transcript_id,desc,sep="\n")
+  outfile<-paste(paste0("Routput/UpReg_Plots/",transcript_id),"pdf",sep=".")
+  df_exp<-df_counts_long %>% filter(Transcript_ID==transcript_id)
+  expression_dotplot(df_exp,title=title,padj=padj,outfile=outfile)
+}
+
+
+
+####Create Volcano plot####
+infile_all_deseq2_results<-"Routput/all_deseq2_results.tsv"
+df_all_results<-read_tsv(infile_all_deseq2_results)
+##Combine the DEG together
+df_deg<-bind_rows(df_down,df_up)
+##Label the genes in df_all_results as DEG or not
+df_all_results$DEG<-if_else(df_all_results$Transcript_ID %in% df_deg$Transcript_ID,"yes","no")
+##Explicitly  make DEG a factor and specify legend order
+df_all_results$DEG<-factor(df_all_results$DEG,levels=c("yes","no"))
+
+plot<-ggplot(df_all_results,aes(x=log2FoldChange,y=-log2(padj),color=DEG))
+plot<-plot+geom_point()+scale_color_manual(values=c("yes"="red","no"="blue"))
+plot<-plot+ggtitle("Volcano plot")+theme(plot.title = element_text(hjust=0.5))
+print(plot)
+
+####Make heatmaps####
+library(gplots)
+make_heatmap<-function(m,title,outfile){
+  ##Make a heatmap
+  pdf_width=7
+  pdf_height=7
+  ylab=""
+  xlab=""
+  key_title="Expression Z-score"
+  row_font_size=0.85
+  row_offset=-0.12
+  colfunc=colorRampPalette(c("purple","green"))
+  margins=c(10,6)
+  
+  pdf(outfile,width=pdf_width,height=pdf_height)
+  
+  heatmap.2(m,scale="row",dendrogram = "column",tracecol = NA,
+            reorderfun = function(d,w) reorder(d,w,agglo.FUN=mean),
+            distfun=function(x) as.dist(1-cor(t(x))),
+            hclustfun = function(x) hclust(x,method="complete"),
+            keysize=1,cexRow=row_font_size,key.title = key_title,key.par=list(cex=0.5),
+            key.ylab = NA,key.ytickfun = function(x) list(labels=FALSE,tick=FALSE),
+            margins=margins,offsetRow = row_offset,col=colfunc(15),main=title,
+            labRow=F
+  )
+  mtext(ylab,side=4,cex=0.6,line=1.2)
+  mtext(xlab,side=1,cex=0.6,line=4)
+  dev.off()
+}
+##When making a heatmap it is easiest to use
+##the data in "wide" format
+##Create dataframe with just deg counts
+df_counts_wide_deg<-df_counts_wide %>% filter(Transcript_ID %in% df_deg$Transcript_ID)
+##Data needs to be converted to matrix format
+m_counts_deg<-as.matrix(df_counts_wide_deg[,2:5])
+rownames(m_counts_deg)<-df_counts_wide_deg$Transcript_ID
+heatmap_title<-"DEG heatmap"
+heatmap_outfile<-"Routput/deg_heatmap.pdf"
+make_heatmap(m_counts_deg,title=heatmap_title,
+             outfile=heatmap_outfile)
+
+##Data needs to be converted to matrix format
+m_counts<-as.matrix(df_counts_wide[,2:5])
+rownames(m_counts)<-df_counts_wide$Transcript_ID
+
+##Before graphing identify lowly expressed genes
+##to filter out (here base on smallest value for a DEG)
+df_expressed_genes<-df_all_results %>% filter(baseMean>=3)
+m_counts<-m_counts[rownames(m_counts) %in% df_expressed_genes$Transcript_ID,]
+heatmap_title<-"All genes heatmap"
+heatmap_outfile<-"Routput/all_genes_heatmap.pdf"
+make_heatmap(m_counts,title=heatmap_title,
+             outfile=heatmap_outfile)
