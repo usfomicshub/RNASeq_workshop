@@ -1,0 +1,6 @@
+"0","##Lets remove the columns we don't need"
+"0","df_counts<-df_counts %>% select(-Chr, -Start,-End,-Strand,-Length)"
+"0",""
+"0","##To makes samples easier to read remove file extension from sample name"
+"0","colnames(df_counts)<-gsub(pattern="".bam"",replacement = """","
+"0","                                  x=colnames(df_counts),fixed=T)"

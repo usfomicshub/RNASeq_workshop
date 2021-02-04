@@ -1,0 +1,5 @@
+"0","##Lets also get the normalized data for graphing"
+"0","df_counts<-as.data.frame(counts(dds,normalized=T))"
+"0","df_counts$Transcript_ID<-rownames(df_counts)"
+"0","col_order<-c(""Transcript_ID"",colnames(df_counts[1:4]))"
+"0","df_counts<-df_counts[,col_order]"

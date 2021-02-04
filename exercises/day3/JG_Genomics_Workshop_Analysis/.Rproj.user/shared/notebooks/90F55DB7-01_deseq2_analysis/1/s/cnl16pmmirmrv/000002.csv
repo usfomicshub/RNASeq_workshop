@@ -1,0 +1,5 @@
+"0","##Write out all of the results"
+"0","write_tsv(df_res,here::here(""Routput/all_deseq2_results.tsv""))"
+"2","cannot open file '/Users/janelledonglasan/Documents/GitHub/RNASeq_workshop/exercises/day3/JG_Genomics_Workshop_Analysis/Routput/all_deseq2_results.tsv': No such file or directory"
+"2","Error in open.connection(file, ""wb"") : cannot open the connection
+"
