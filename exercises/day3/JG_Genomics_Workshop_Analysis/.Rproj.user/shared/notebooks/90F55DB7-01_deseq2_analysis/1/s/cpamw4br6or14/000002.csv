@@ -1,3 +1,0 @@
-"0","##Lets load the data"
-"0","infile_feature_counts<-here::here(""Rdata/vehicle_drug_feature_counts.txt"")"
-"0","df_counts<-read.delim(infile_feature_counts,comment.char = ""#"")"

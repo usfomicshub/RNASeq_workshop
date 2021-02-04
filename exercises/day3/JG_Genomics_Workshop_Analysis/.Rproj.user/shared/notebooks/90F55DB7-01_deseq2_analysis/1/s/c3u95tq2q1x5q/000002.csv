@@ -1,5 +1,0 @@
-"0","##Lets make a meta-data table (Required for DESeq2)"
-"0","df_meta<-data.frame(Sample=colnames(df_counts)[2:5],"
-"0","                    Info=colnames(df_counts)[2:5])"
-"0",""
-"0","df_meta<-df_meta %>% separate(col=Info,into=c(""Condition"",""Replicate""),sep=""_"")"

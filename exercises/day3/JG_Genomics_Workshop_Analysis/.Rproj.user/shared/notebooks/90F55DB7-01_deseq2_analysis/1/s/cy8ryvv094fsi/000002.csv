@@ -1,5 +1,0 @@
-"0","##Create the DESeq2 data object"
-"0","dds<-DESeqDataSetFromMatrix(countData = m_counts,"
-"0","                            colData = df_meta,"
-"0","                            design=~Condition)"
-"2","some variables in design formula are characters, converting to factors"

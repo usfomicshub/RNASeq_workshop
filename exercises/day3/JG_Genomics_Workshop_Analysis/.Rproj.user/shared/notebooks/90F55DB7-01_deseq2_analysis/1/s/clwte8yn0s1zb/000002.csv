@@ -1,6 +1,0 @@
-"0","##Perform sample ordination to assess sample quality"
-"0","##PCA's generally don't work will with RNA-seq data"
-"0","##The rlog function helps normalize the data "
-"0","##in a PCA friendly manner"
-"0","rld<-rlog(dds)"
-"0","DESeq2::plotPCA(rld,intgroup=""Condition"")"
